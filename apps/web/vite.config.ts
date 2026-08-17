@@ -7,9 +7,16 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       allowedHosts: ['maritime-naturist-safehouse.ngrok-free.dev'],
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '')
+        }
+      }
     },
     define: {
-      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL ?? 'http://localhost:3000'),
+      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL ?? '/api'),
     },
   };
 });
