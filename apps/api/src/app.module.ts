@@ -8,5 +8,9 @@ import { TikTokScraperService } from './scrapes/tiktok-scraper.service';
 import { GoogleSheetsService } from './sheets/google-sheets.service';
 import { SheetsController } from './sheets/sheets.controller';
 
-@Module({ imports: [ConfigModule.forRoot({ isGlobal: true })], controllers: [ScrapesController, SheetsController], providers: [PrismaService, ScrapesService, TikTokScraperService, GoogleSheetsService, BotService] })
-export class AppModule {}
+@Module({
+    imports: [ConfigModule.forRoot({ isGlobal: true })],
+    controllers: [ScrapesController, SheetsController],
+    providers: [PrismaService, ScrapesService, TikTokScraperService, GoogleSheetsService, BotService]
+})
+export class AppModule { }

@@ -11,7 +11,7 @@ type SheetsConfig = { sheetId: string; tab: string; auth: InstanceType<typeof go
 @Injectable()
 export class GoogleSheetsService {
   private readonly logger = new Logger(GoogleSheetsService.name);
-  constructor(private config: ConfigService) {}
+  constructor(private config: ConfigService) { }
 
   async append(record: ScrapeHistory) {
     const { sheetId, tab, auth } = this.getConfig();
@@ -20,7 +20,21 @@ export class GoogleSheetsService {
       spreadsheetId: sheetId,
       range: `${this.escapeTab(tab)}!A:K`,
       valueInputOption: 'USER_ENTERED',
-      requestBody: { values: [[record.scrapedAt.toISOString(), record.url, record.type, record.status, record.views?.toString() ?? '', record.likes?.toString() ?? '', record.comments?.toString() ?? '', record.shares?.toString() ?? '', record.followers?.toString() ?? '', record.totalLikes?.toString() ?? '', record.totalVideos ?? '']] },
+      requestBody: {
+        values: [
+          [record.scrapedAt.toISOString(),
+          record.url,
+          record.type,
+          record.status,
+          record.views?.toString() ?? '',
+          record.likes?.toString() ?? '',
+          record.comments?.toString() ?? '',
+          record.shares?.toString() ?? '',
+          record.followers?.toString() ?? '',
+          record.totalLikes?.toString() ?? '',
+          record.totalVideos ?? '']
+        ]
+      },
     });
     this.logger.log(`Google Sheets synced: scrape ${record.id}`);
   }
