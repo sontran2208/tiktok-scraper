@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ScrapeType {
+  VIDEO
+  PROFILE
+}
+
+enum ScrapeStatus {
+  SUCCESS
+  FAILED
+}
+
+model ScrapeHistory {
+  id             String       @id @default(cuid())
+  telegramUserId String?
+  url            String
+  type           ScrapeType
+  status         ScrapeStatus @default(SUCCESS)
+  views          BigInt?
+  likes          BigInt?
+  comments       BigInt?
+  shares         BigInt?
+  followers      BigInt?
+  totalLikes     BigInt?
+  totalVideos    Int?
+  errorMessage   String?
+  scrapedAt      DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  @@index([scrapedAt])
+  @@index([type])
+}
