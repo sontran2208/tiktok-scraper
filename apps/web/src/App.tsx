@@ -25,9 +25,9 @@ export function App() {
     setHistoryLoading(true);
     try {
       const res = await getScrapes(type, order, p, LIMIT);
-      setItems(res.data);
-      setTotalPages(res.meta.totalPages);
-      setTotal(res.meta.total);
+      setItems(res.data ?? []);
+      setTotalPages(res.meta?.totalPages ?? 1);
+      setTotal(res.meta?.total ?? 0);
     }
     catch { setError('Không tải được lịch sử. Kiểm tra API rồi thử lại.'); }
     finally { setHistoryLoading(false); }
