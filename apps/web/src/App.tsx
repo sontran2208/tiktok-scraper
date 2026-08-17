@@ -180,7 +180,7 @@ function HistoryCard({ item }: { item: Scrape }) {
       <time>{formatDate(item.scrapedAt)}</time>
     </div>
     <a href={item.url} target="_blank" rel="noreferrer">{item.url}</a>
-    <div className="metrics">
+    <div className={`metrics ${video ? 'video' : 'profile'}`}>
       {video ? <>
         <Metric label="Views" value={item.views} />
         <Metric label="Likes" value={item.likes} />
