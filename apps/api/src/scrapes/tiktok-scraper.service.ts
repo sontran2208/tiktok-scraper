@@ -16,7 +16,14 @@ export class TikTokScraperService {
     const type = this.detectType(url);
     let html: string;
     try {
-      const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(12_000), redirect: 'follow' });
+      const r = await fetch(
+        url,
+        {
+          headers: { 'user-agent': 'Mozilla/5.0' },
+          signal: AbortSignal.timeout(12_000),
+          redirect: 'follow'
+        }
+      );
       if (!r.ok) throw new Error(String(r.status)); html = await r.text();
     }
     catch { throw new ServiceUnavailableException('Không thể kết nối TikTok. Vui lòng thử lại sau.'); }
@@ -44,8 +51,19 @@ export class TikTokScraperService {
     if (!json) throw new ServiceUnavailableException('TikTok không trả dữ liệu công khai hoặc nội dung ở chế độ riêng tư.');
     const item = this.findObject(json, type === 'VIDEO' ? 'itemStruct' : 'userInfo') ?? json;
     const stats = this.findObject(item, type === 'VIDEO' ? 'stats' : 'stats') ?? {};
-    if (type === 'VIDEO') return { type, views: this.num(stats.playCount), likes: this.num(stats.diggCount), comments: this.num(stats.commentCount), shares: this.num(stats.shareCount) };
-    return { type, followers: this.num(stats.followerCount), totalLikes: this.num(stats.heartCount ?? stats.heart), totalVideos: Number(stats.videoCount ?? 0) };
+    if (type === 'VIDEO') return {
+      type,
+      views: this.num(stats.playCount),
+      likes: this.num(stats.diggCount),
+      comments: this.num(stats.commentCount),
+      shares: this.num(stats.shareCount)
+    };
+    return {
+      type,
+      followers: this.num(stats.followerCount),
+      totalLikes: this.num(stats.heartCount ?? stats.heart),
+      totalVideos: Number(stats.videoCount ?? 0)
+    };
   }
   private num(value: unknown): bigint { return BigInt(typeof value === 'number' || typeof value === 'string' ? value : 0); }
   private readEmbeddedJson(html: string): unknown | null {
