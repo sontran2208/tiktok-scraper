@@ -8,13 +8,20 @@ import { Metrics, TikTokScraperService } from './tiktok-scraper.service';
 @Injectable()
 export class ScrapesService {
   private readonly logger = new Logger(ScrapesService.name);
-  constructor(private prisma: PrismaService, private scraper: TikTokScraperService, private sheets: GoogleSheetsService) { }
+  constructor(
+    private prisma: PrismaService,
+    private scraper: TikTokScraperService,
+    private sheets: GoogleSheetsService
+  ) { }
   async create(input: CreateScrapeDto) {
     const type = this.scraper.detectType(input.url);
     try {
       const metrics = await this.scraper.scrape(input.url);
-      const record = await this.prisma.scrapeHistory.create({ data: this.toData(input, metrics) });
-      this.sheets.append(record).catch((e) => this.logger.warn(`Google Sheets sync failed: ${e.message}`));
+      const record = await this.prisma.scrapeHistory.create({
+        data: this.toData(input, metrics)
+      });
+      this.sheets.append(record)
+        .catch((e) => this.logger.warn(`Google Sheets sync failed: ${e.message}`));
       return this.serialize(record);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Lỗi không xác định';
@@ -31,15 +38,31 @@ export class ScrapesService {
     }
   }
   async findAll(query: ListScrapesDto) {
-    const rows = await this.prisma.scrapeHistory.findMany({
-      where: {
-        status: 'SUCCESS',
-        ...(query.type ? { type: query.type as ScrapeType } : {})
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+    const where = {
+      status: 'SUCCESS' as const,
+      ...(query.type ? { type: query.type as ScrapeType } : {})
+    };
+    const [rows, total] = await Promise.all([
+      this.prisma.scrapeHistory.findMany({
+        where,
+        orderBy: { scrapedAt: query.order ?? 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.scrapeHistory.count({ where }),
+    ]);
+    return {
+      data: rows.map((row) => this.serialize(row)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
       },
-      orderBy: { scrapedAt: query.order ?? 'desc' },
-      take: 100
-    });
-    return rows.map((row) => this.serialize(row));
+    };
   }
   private toData(input: CreateScrapeDto, m: Metrics): Prisma.ScrapeHistoryUncheckedCreateInput {
     return {

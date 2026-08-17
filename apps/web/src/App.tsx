@@ -5,6 +5,8 @@ import { createScrape, getScrapes, Scrape } from './api';
 const format = (value?: string | number) => value === undefined || value === null ? '—' : new Intl.NumberFormat('vi-VN').format(Number(value));
 const formatDate = (date: string) => new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(date));
 
+const LIMIT = 10;
+
 export function App() {
   const [url, setUrl] = useState('');
   const [items, setItems] = useState<Scrape[]>([]);
@@ -13,28 +15,54 @@ export function App() {
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
   const userId = WebApp.initDataUnsafe.user?.id?.toString();
-  const refresh = async () => {
+
+  const refresh = async (p: number = page) => {
     setHistoryLoading(true);
-    try { setItems(await getScrapes(type, order)); }
+    try {
+      const res = await getScrapes(type, order, p, LIMIT);
+      setItems(res.data);
+      setTotalPages(res.meta.totalPages);
+      setTotal(res.meta.total);
+    }
     catch { setError('Không tải được lịch sử. Kiểm tra API rồi thử lại.'); }
     finally { setHistoryLoading(false); }
   };
-  useEffect(() => { refresh(); }, [type, order]);
+
+  useEffect(() => {
+    setPage(1);
+    refresh(1);
+  }, [type, order]);
+
+  useEffect(() => {
+    refresh(page);
+  }, [page]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const result = await createScrape(url.trim(), userId);
-      setItems((old) => [result, ...old]);
-      setUrl(''); WebApp.HapticFeedback.notificationOccurred('success');
+      await createScrape(url.trim(), userId);
+      setUrl('');
+      WebApp.HapticFeedback.notificationOccurred('success');
+      // Reload trang 1 để hiện item mới nhất
+      setPage(1);
+      await refresh(1);
     }
     catch (e) {
-      const message = e instanceof Error ? e.message : 'Không thể cào dữ liệu.'; setError(message); WebApp.HapticFeedback.notificationOccurred('error');
+      const message = e instanceof Error ? e.message : 'Không thể cào dữ liệu.';
+      setError(message);
+      WebApp.HapticFeedback.notificationOccurred('error');
     } finally { setLoading(false); }
   }
+
   const empty = useMemo(() => !historyLoading && items.length === 0, [items.length, historyLoading]);
+
   return <main>
     <header>
       <p className="eyebrow">TELEGRAM MINI APP</p>
@@ -58,7 +86,12 @@ export function App() {
     </form>
     <section className="history">
       <div className="history-title">
-        <h2>Lịch sử cào</h2>
+        <div>
+          <h2>Lịch sử cào</h2>
+          {!historyLoading && total > 0 && (
+            <p className="history-count">{total} kết quả</p>
+          )}
+        </div>
         <div className="filters">
           <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Lọc loại link">
             <option value="ALL">Tất cả</option>
@@ -71,14 +104,40 @@ export function App() {
           </select>
         </div>
       </div>
+
       {historyLoading
         ? <div className="list">{[1, 2, 3].map((n) => <SkeletonCard key={n} />)}</div>
         : empty
           ? <div className="empty">Chưa có dữ liệu. Hãy cào link TikTok đầu tiên.</div>
           : <div className="list">{items.map((item) => <HistoryCard item={item} key={item.id} />)}</div>}
+
+      {!historyLoading && totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="page-btn"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+            aria-label="Trang trước"
+          >
+            ←
+          </button>
+          <span className="page-info">
+            Trang <strong>{page}</strong> / {totalPages}
+          </span>
+          <button
+            className="page-btn"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            aria-label="Trang sau"
+          >
+            →
+          </button>
+        </div>
+      )}
     </section>
   </main>;
 }
+
 function SkeletonCard() {
   return (
     <article className="card result skeleton">
@@ -95,6 +154,7 @@ function SkeletonCard() {
     </article>
   );
 }
+
 function HistoryCard({ item }: { item: Scrape }) {
   const video = item.type === 'VIDEO';
   return <article className="card result">
@@ -117,6 +177,7 @@ function HistoryCard({ item }: { item: Scrape }) {
     </div>
   </article>;
 }
+
 function Metric({ label, value }: { label: string; value?: string | number }) {
   return <div>
     <span>{label}</span>
