@@ -11,11 +11,14 @@ export function App() {
   const [type, setType] = useState('ALL');
   const [order, setOrder] = useState('desc');
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState('');
   const userId = WebApp.initDataUnsafe.user?.id?.toString();
   const refresh = async () => {
+    setHistoryLoading(true);
     try { setItems(await getScrapes(type, order)); }
     catch { setError('Không tải được lịch sử. Kiểm tra API rồi thử lại.'); }
+    finally { setHistoryLoading(false); }
   };
   useEffect(() => { refresh(); }, [type, order]);
   async function submit(event: FormEvent) {
@@ -31,7 +34,7 @@ export function App() {
       const message = e instanceof Error ? e.message : 'Không thể cào dữ liệu.'; setError(message); WebApp.HapticFeedback.notificationOccurred('error');
     } finally { setLoading(false); }
   }
-  const empty = useMemo(() => !loading && items.length === 0, [items.length, loading]);
+  const empty = useMemo(() => !historyLoading && items.length === 0, [items.length, historyLoading]);
   return <main>
     <header>
       <p className="eyebrow">TELEGRAM MINI APP</p>
@@ -68,9 +71,29 @@ export function App() {
           </select>
         </div>
       </div>
-      {empty ? <div className="empty">Chưa có dữ liệu. Hãy cào link TikTok đầu tiên.</div> : <div className="list">{items.map((item) => <HistoryCard item={item} key={item.id} />)}</div>}
+      {historyLoading
+        ? <div className="list">{[1, 2, 3].map((n) => <SkeletonCard key={n} />)}</div>
+        : empty
+          ? <div className="empty">Chưa có dữ liệu. Hãy cào link TikTok đầu tiên.</div>
+          : <div className="list">{items.map((item) => <HistoryCard item={item} key={item.id} />)}</div>}
     </section>
   </main>;
+}
+function SkeletonCard() {
+  return (
+    <article className="card result skeleton">
+      <div className="skeleton-line short" />
+      <div className="skeleton-line" />
+      <div className="skeleton-metrics">
+        {[1, 2, 3, 4].map((n) => (
+          <div key={n} className="skeleton-metric">
+            <div className="skeleton-line mini" />
+            <div className="skeleton-line mid" />
+          </div>
+        ))}
+      </div>
+    </article>
+  );
 }
 function HistoryCard({ item }: { item: Scrape }) {
   const video = item.type === 'VIDEO';
