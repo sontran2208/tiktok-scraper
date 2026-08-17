@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import WebApp from '@twa-dev/sdk';
+import toast from 'react-hot-toast';
 import { createScrape, getScrapes, Scrape } from './api';
 
 const format = (value?: string | number) => value === undefined || value === null ? '—' : new Intl.NumberFormat('vi-VN').format(Number(value));
@@ -53,10 +54,12 @@ export function App() {
     event.preventDefault();
     setError('');
     setLoading(true);
+    const toastId = toast.loading('Đang cào dữ liệu...');
     try {
       await createScrape(url.trim(), userId);
       setUrl('');
       WebApp.HapticFeedback.notificationOccurred('success');
+      toast.success('Cào dữ liệu thành công!', { id: toastId });
       // Reload trang 1 để hiện item mới nhất
       setPage(1);
       await refresh(1);
@@ -65,6 +68,7 @@ export function App() {
       const message = e instanceof Error ? e.message : 'Không thể cào dữ liệu.';
       setError(message);
       WebApp.HapticFeedback.notificationOccurred('error');
+      toast.error(message, { id: toastId });
     } finally { setLoading(false); }
   }
 
