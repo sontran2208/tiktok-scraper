@@ -7,6 +7,7 @@ export class TikTokScraperService {
   detectType(url: string): ScrapeType {
     try {
       const u = new URL(url);
+      if (!['http:', 'https:'].includes(u.protocol)) throw new Error();
       if (!/(^|\.)tiktok\.com$/i.test(u.hostname.replace(/^www\./, ''))) throw new Error();
       return /\/(video|photo)\/\d+/.test(u.pathname) ? 'VIDEO' : 'PROFILE';
     }
