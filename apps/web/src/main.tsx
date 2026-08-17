@@ -10,6 +10,6 @@ WebApp.expand();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
-    <Toaster position="bottom-center" />
+    <Toaster position="top-center" />
   </StrictMode>
 );
