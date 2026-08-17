@@ -9,3 +9,13 @@
 .skeleton-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
 .skeleton-metric { display: flex; flex-direction: column; gap: 5px; }
 
+/* ── Pagination ── */
+.history-count { font-size: .75rem; color: #697386; margin: 2px 0 0; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
+.page-btn { width: auto; padding: 0; min-width: 44px; min-height: 44px; border-radius: 50%; background: #fe2c55; color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; transition: opacity .15s, transform .1s; }
+.page-btn:active:not(:disabled) { transform: scale(.93); }
+.page-btn:disabled { background: #e0e0e0; color: #aaa; cursor: not-allowed; opacity: 1; }
+.page-info { font-size: .88rem; color: #697386; white-space: nowrap; }
+.page-info strong { color: #182134; }
+
+
