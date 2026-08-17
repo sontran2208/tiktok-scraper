@@ -126,7 +126,10 @@ export function App() {
         <div className="pagination">
           <button
             className="page-btn"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            onClick={() => {
+              setPage((p) => Math.max(1, p - 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             disabled={page <= 1}
             aria-label="Trang trước"
           >
@@ -137,7 +140,10 @@ export function App() {
           </span>
           <button
             className="page-btn"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            onClick={() => {
+              setPage((p) => Math.min(totalPages, p + 1));
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
             disabled={page >= totalPages}
             aria-label="Trang sau"
           >
