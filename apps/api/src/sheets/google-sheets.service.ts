@@ -13,9 +13,16 @@ export class GoogleSheetsService {
   private readonly logger = new Logger(GoogleSheetsService.name);
   constructor(private config: ConfigService) { }
 
+  private static readonly HEADERS = [
+    'Thời gian', 'URL', 'Loại', 'Trạng thái',
+    'Views', 'Likes', 'Comments', 'Shares',
+    'Followers', 'Total Likes', 'Total Videos',
+  ];
+
   async append(record: ScrapeHistory) {
     const { sheetId, tab, auth } = this.getConfig();
     const sheets = google.sheets({ version: 'v4', auth });
+    await this.ensureHeaders(sheets, sheetId, tab);
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: `${this.escapeTab(tab)}!A:K`,
@@ -37,6 +44,30 @@ export class GoogleSheetsService {
       },
     });
     this.logger.log(`Google Sheets synced: scrape ${record.id}`);
+  }
+
+  private async ensureHeaders(
+    sheets: ReturnType<typeof google.sheets>,
+    sheetId: string,
+    tab: string,
+  ) {
+    try {
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${this.escapeTab(tab)}!A1`,
+      });
+      const firstCell = res.data.values?.[0]?.[0];
+      if (firstCell) return; // headers already exist
+    } catch {
+      return; // if we can't read, skip — append will surface the real error
+    }
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `${this.escapeTab(tab)}!A1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [GoogleSheetsService.HEADERS] },
+    });
+    this.logger.log(`Google Sheets: header row created in tab "${tab}"`);
   }
 
   async verify() {
