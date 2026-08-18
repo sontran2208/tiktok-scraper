@@ -31,3 +31,17 @@ export class ListScrapesDto {
     limit?: number = 10;
 }
 
+export class ListProfileVideosDto {
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    page?: number = 1;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    @Max(100)
+    limit?: number = 20;
+}

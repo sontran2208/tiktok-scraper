@@ -17,6 +17,13 @@ enum ScrapeStatus {
   FAILED
 }
 
+enum VideoJobStatus {
+  PENDING
+  RUNNING
+  DONE
+  FAILED
+}
+
 model ScrapeHistory {
   id             String       @id @default(cuid())
   telegramUserId String?
@@ -33,6 +40,27 @@ model ScrapeHistory {
   errorMessage   String?
   scrapedAt      DateTime     @default(now())
   createdAt      DateTime     @default(now())
+  videoJobStatus VideoJobStatus?
+  videoJobError  String?
+  videos         ProfileVideoScrape[]
   @@index([scrapedAt])
   @@index([type])
+}
+
+model ProfileVideoScrape {
+  id              String        @id @default(cuid())
+  scrapeHistoryId String
+  scrapeHistory   ScrapeHistory @relation(fields: [scrapeHistoryId], references: [id], onDelete: Cascade)
+  videoId         String
+  videoUrl        String
+  description     String?
+  views           BigInt?
+  likes           BigInt?
+  comments        BigInt?
+  shares          BigInt?
+  coverUrl        String?
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  @@index([scrapeHistoryId])
+  @@index([videoId])
 }
