@@ -19,6 +19,10 @@ export class GoogleSheetsService {
     'Followers', 'Total Likes', 'Total Videos',
   ];
 
+  private static readonly VIDEO_HEADERS = [
+    'Profile URL', 'Video URL', 'Mô tả', 'Views', 'Likes', 'Comments', 'Shares', 'Ngày đăng',
+  ];
+
   async append(record: ScrapeHistory) {
     const { sheetId, tab, auth } = this.getConfig();
     const sheets = google.sheets({ version: 'v4', auth });
@@ -44,6 +48,84 @@ export class GoogleSheetsService {
       },
     });
     this.logger.log(`Google Sheets synced: scrape ${record.id}`);
+  }
+
+  async appendProfileVideos(profileUrl: string, videos: import('../scrapes/tiktok-scraper.service').VideoMetrics[]) {
+    const { sheetId, auth } = this.getConfig();
+    const tab = (this.config.get<string>('GOOGLE_SHEET_TAB_VIDEOS')?.trim() || 'Profile Videos');
+    const sheets = google.sheets({ version: 'v4', auth });
+    await this.ensureProfileVideosHeaders(sheets, sheetId, tab);
+    if (videos.length === 0) return;
+    const rows = videos.map((v) => [
+      profileUrl,
+      v.videoUrl,
+      v.description ?? '',
+      v.views?.toString() ?? '',
+      v.likes?.toString() ?? '',
+      v.comments?.toString() ?? '',
+      v.shares?.toString() ?? '',
+      v.publishedAt?.toISOString() ?? '',
+    ]);
+    // Chia batch 200 dòng để tránh giới hạn API
+    for (let i = 0; i < rows.length; i += 200) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range: `${this.escapeTab(tab)}!A:H`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: rows.slice(i, i + 200) },
+      });
+    }
+    this.logger.log(`Google Sheets: ${videos.length} video synced vào tab "${tab}"`);
+  }
+
+  private async ensureProfileVideosHeaders(
+    sheets: ReturnType<typeof google.sheets>,
+    sheetId: string,
+    tab: string,
+  ) {
+    // Kiểm tra tab đã tồn tại chưa
+    let tabExists = false;
+    try {
+      const res = await sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${this.escapeTab(tab)}!A1`,
+      });
+      // Tab tồn tại — nếu đã có header thì return luôn
+      if (res.data.values?.[0]?.[0]) return;
+      tabExists = true;
+    } catch (e: any) {
+      // Lỗi 400 "Unable to parse range" = tab chưa tồn tại
+      const msg: string = e?.message ?? '';
+      if (!msg.includes('Unable to parse range') && !msg.includes('badRequest')) {
+        // Lỗi khác (auth, network...) thì return để append surface lỗi thực
+        return;
+      }
+      tabExists = false;
+    }
+
+    if (!tabExists) {
+      // Tạo tab mới
+      try {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: sheetId,
+          requestBody: {
+            requests: [{ addSheet: { properties: { title: tab } } }],
+          },
+        });
+        this.logger.log(`Google Sheets: đã tạo tab mới "${tab}"`);
+      } catch (e: any) {
+        // Tab có thể đã tồn tại do race condition — bỏ qua
+        this.logger.warn(`Google Sheets: không tạo được tab "${tab}": ${e?.message}`);
+      }
+    }
+
+    // Ghi header
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: sheetId,
+      range: `${this.escapeTab(tab)}!A1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [GoogleSheetsService.VIDEO_HEADERS] },
+    });
   }
 
   private async ensureHeaders(
